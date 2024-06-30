@@ -1,4 +1,5 @@
 empty = "empty"
+suits = ["heart", "diamond", "spade", "club"]
 
 
 def is_link(s):
@@ -99,13 +100,97 @@ def partitions(n, m):
         return extend_link(with_m, without_m)
 
 
+def mutable_link():
+    contents = empty
+
+    def dispatch(message, value=None):
+        nonlocal contents
+        if message == "len":
+            return len_link(contents)
+        elif message == "getitem":
+            return getitem_link(contents, value)
+        elif message == "push_first":
+            contents = link(value, contents)
+        elif message == "pop_first":
+            f = first(contents)
+            contents = rest(contents)
+            return f
+        elif message == "str":
+            return join_link(contents, ", ")
+
+    return dispatch
+
+
+def to_mutable_link(source):
+    s = mutable_link()
+    for element in reversed(source):
+        s("push_first", element)
+    return s
+
+
 def print_partitions(n, m):
     lists = partitions(n, m)
     strings = apply_to_all_link(lambda s: join_link(s, " + "), lists)
     print(join_link(strings, "\n"))
 
 
+def first_d(d):
+    return d[0]
+
+
+def rest_d(d):
+    return d[1:]
+
+
+def join_dict(d, separator):
+    if len(rest_d(d)) == 0:
+        key, value = first_d(d)
+        return "(" + str(key) + "," + str(value) + ")"
+    else:
+        key, value = first_d(d)
+        return (
+            "("
+            + str(key)
+            + ","
+            + str(value)
+            + ")"
+            + separator
+            + join_dict(rest_d(d), separator)
+        )
+
+
+def dictionary():
+    records = []
+
+    def getitem(key):
+        matches = [r for r in records if r[0] == key]
+        if len(matches) == 1:
+            key, value = matches[0]
+            return value
+
+    def setitem(key, value):
+        nonlocal records
+        non_matches = [r for r in records if r[0] != key]
+        records = non_matches + [[key, value]]
+
+    def dispatch(message, key=None, value=None):
+        if message == "getitem":
+            return getitem(key)
+        elif message == "setitem":
+            setitem(key, value)
+        elif message == "str":
+            return join_dict(records, ", ")
+
+    return dispatch
+
+
 four = link(1, link(2, link(3, link(4, empty))))
-print(apply_to_all_link(lambda x: x * x, four))
-print(keep_if_link(lambda x: x % 2 == 0, four))
 print_partitions(6, 4)
+
+s = to_mutable_link(suits)
+s("pop_first")
+d = dictionary()
+d("setitem", 3, 9)
+d("setitem", 4, 16)
+d("setitem", 5, 25)
+print(d("str"))
